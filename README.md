@@ -1,6 +1,6 @@
 # pitad
 
-A running app for iOS and Android, built incrementally with Expo SDK 58 and JavaScript. This repository implements **Phase 1: project foundation**. GPS recording is not implemented or enabled.
+A running app for iOS and Android, built incrementally with Expo SDK 58 and JavaScript. **Phase 1 foundation and Phase 2 GPS recording are implemented.** Phase 2 native device acceptance is pending; see [recording setup and verification](docs/phase-2.md).
 
 ## Start here
 
@@ -8,7 +8,7 @@ Prerequisites: Node.js 24 LTS, npm, a Supabase project, and an Expo account for 
 
 ```powershell
 npm ci
-Copy-Item .env.example .env
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
 Edit `.env` with your project's **URL** and **publishable key** from Supabase's Connect dialog / Project Settings → API Keys:
@@ -73,8 +73,12 @@ Link the EAS project when prompted and set the two public Supabase variables in 
 - Auth event subscription cleanup and native foreground token refresh. Auth state changes clear account-specific TanStack Query data.
 - Profile reads/edits: name, unique username, kilometers/miles, and private-profile preference. Local form drafts are not overwritten by a background refetch. Sign-out is scoped to this device.
 - PostgreSQL profiles, user_goals, and user_devices with UUIDs, constraints, timestamps, update triggers, owner policies, grants, and cascading account cleanup. Profiles default private; public profile reads will only be added with social privacy rules in Phase 6.
+- Native GPS readiness and permission flow, foreground and background recording services, pause/resume, filtered distance, rolling pace, moving/elapsed time, kilometer splits, and estimated elevation gain.
+- Transactional SQLite recording recovery, real route rendering, saved summaries, editable titles, estimated energy, and recent local runs. Recording does not require an internet connection after signing in. Cloud activity sync remains Phase 3.
 
-Home and later-phase tabs describe what will arrive next. They do not display fabricated metrics, maps, GPS fixes, clubs, or social activity. The decorative path on Welcome is an illustration, not a recorded route.
+Home lists this account's saved runs on the device. Explore and Progress describe later phases. Production screens never simulate GPS fixes or activities. The decorative path on Welcome is an illustration, not a recorded route.
+
+**Rebuild the development client for Phase 2** using the EAS commands above; the Phase 1 binary does not contain the new native modules and permissions. Recording is disabled in the browser and Expo Go. Optional Android street-map configuration uses `GOOGLE_MAPS_ANDROID_API_KEY`; without it, the recorded route appears as a coordinate preview. See [Phase 2 setup](docs/phase-2.md) for key restrictions and device checks.
 
 ## Architecture and changed files
 
@@ -84,12 +88,17 @@ src/
     _layout.js, index.js      # Providers, auth guards, entry redirect
     (auth)/                  # Welcome, login, register
     (tabs)/                  # Home, explore, record, progress, profile
+    run/[id].js              # Protected saved-run summary
     verify-email.js, reset-password.js, +not-found.js
   components/common/         # Shared UI and navigation links
+  components/maps/           # Native maps and actual-coordinate fallback
   features/
     authentication/          # Screens, API wrapper, session observer, provider
     dashboard/               # Home and clearly labeled upcoming sections
     profile/                 # Editable profile and preferences
+    tracking/                # Pure GPS engine, lifecycle, recording UI
+    activities/              # Local history and saved-run summary
+  database/local/            # SQLite migration and recording repository
   database/supabase/         # Client and profile queries
   hooks/                     # Query and async-action hooks
   services/                  # Query client, native/web auth storage
@@ -102,11 +111,12 @@ supabase/
 tests/
   unit/                      # Validation, session races, storage failures
   integration/               # Real SQL policies in embedded PostgreSQL
+  tracking/                  # Calculation, real SQLite, lifecycle tests
   e2e/                       # Browser mobile-viewport smoke tests
 scripts/serve-preview.cjs     # Local-only exported SPA test server
 ```
 
-Root files added: `.env.example`, `jsconfig.json`, `eslint.config.cjs`, `eas.json`, `playwright.config.cjs`, and this README. Updated: `package.json`, `package-lock.json`, `app.json`, `.gitignore`. Removed the unused starter `App.js` and `index.js` after switching to Expo Router. Existing assets and repository instruction files are retained. SQLite, GPS, sync services, and their folders are deferred until their phases.
+Root configuration includes `.env.example`, `app.config.js`, `jsconfig.json`, `eslint.config.cjs`, `eas.json`, and `playwright.config.cjs`. Native permissions are configured in `app.json`; native folders remain generated. Minimal SQLite recording storage was brought forward to Phase 2 so interrupted runs survive app restarts. Cloud storage and sync services remain Phase 3.
 
 Application source files are JavaScript. TypeScript is a **development checker only** (`allowJs` + `checkJs`); no application `.ts` or `.tsx` files were added. Small JSDoc annotations describe library boundaries.
 
@@ -118,6 +128,7 @@ All additions used `npx expo install` to preserve Expo compatibility.
 | --- | --- |
 | Navigation and native layout | expo-router, expo-linking, expo-constants, react-native-screens, react-native-safe-area-context |
 | Native persistence and builds | expo-secure-store, expo-dev-client, expo-system-ui |
+| GPS recording and local runs | expo-location, expo-task-manager, expo-sqlite, expo-crypto, react-native-maps |
 | Data and validation | @supabase/supabase-js, react-native-url-polyfill, zustand, @tanstack/react-query, zod |
 | Icons and browser preview | lucide-react-native, react-native-svg, react-dom, react-native-web |
 | Development checks | eslint, eslint-config-expo, typescript, @types/react, @types/node, @electric-sql/pglite, @playwright/test |
@@ -149,20 +160,21 @@ npm run test:e2e
 
 The default browser channel is installed Microsoft Edge. Set `PLAYWRIGHT_CHANNEL=chrome` to use Chrome, or install Playwright Chromium and set `PLAYWRIGHT_CHANNEL=chromium`. The preview server binds only to `127.0.0.1:4173`. Screenshots and failure traces are written to ignored `test-results/`.
 
-Initial verification: 14 unit tests and 8 PostgreSQL test results passed; lint and JavaScript typechecking passed; Expo Doctor passed 20/20 checks; SDK compatibility passed; iOS, Android, and web production bundle exports succeeded. Browser results are recorded in `docs/verification.md`. Bundle exports are not native installation or device tests.
+Phase 2 verification and device acceptance checks are recorded in [docs/phase-2.md](docs/phase-2.md). Historical Phase 1 checks are in [docs/verification.md](docs/verification.md). Bundle exports are not native installation or device tests.
 
-Dependency audit currently reports eight moderate findings inherited through Expo fingerprinting and ESLint's `minimatch` dependency, with no high/critical findings. No forced upgrades or SDK downgrade were applied; track compatible upstream fixes before release.
+The Phase 1 dependency audit reported eight moderate findings through Expo fingerprinting and ESLint's `minimatch` dependency, with no high/critical findings. No forced upgrades or SDK downgrade were applied; rerun the audit and track compatible upstream fixes before release.
 
 ## Phase checklist
 
 - [x] Phase 1 code: Expo initialization, dependencies, feature structure, Router, theme, bottom navigation, welcome/login/registration, Supabase client, auth state, guards, initial migration, environment example, setup documentation.
-- [ ] Phase 1 environment verification: configure the hosted Supabase project, deploy the migration and email templates, and test real registration, confirmation, login, password reset, profile save, app restart, and sign-out on both iOS and Android.
+- [x] Phase 1 gate: user confirmed registration, login, profile saving, and a native development build worked on November 17, 2026. The wider acceptance checklist remains in `docs/verification.md`.
 - [ ] Replace temporary app identifiers and starter app icons before a beta release.
-- [ ] Phase 2: real foreground/background GPS, permissions, filtering, rolling pace, splits, pause/resume, recovery, summary, and real-device tests.
-- [ ] Phase 3: SQLite, local activity preservation, durable sync queue, retries/backoff, idempotent uploads.
+- [x] Phase 2 code: foreground/background GPS services, permissions, filtering, rolling pace, splits, pause/resume, recovery, and summary.
+- [ ] Phase 2 device acceptance: permissions, GPS accuracy, locked-screen recording, battery behavior, interruption and offline recovery on real iOS and Android devices.
+- [ ] Phase 3: extend local storage, durable sync queue, cloud activity schema, retries/backoff, idempotent uploads.
 - [ ] Phase 4: activity details, charts, statistics, personal records.
 - [ ] Phase 5: elevation-aware race pacing, training plans, calendar.
 - [ ] Phase 6: follow/feed/kudos/comments, clubs/challenges/notifications, full privacy policies.
 - [ ] Phase 7: device and security acceptance testing, beta builds and release preparation.
 
-Google/Apple sign-in, avatar uploads, dedicated onboarding/goals screens, account deletion UI, and other broader authentication requirements are not part of the first fifteen foundation deliverables and remain unimplemented. Goals/device tables prepare the database only; no goal or notification feature is implied. Phase 1 is not device-accepted until the environment checklist passes. Do not begin GPS implementation before that gate.
+Google/Apple sign-in, avatar uploads, dedicated onboarding/goals screens, account deletion UI, and other broader authentication requirements remain unimplemented. Goals/device tables prepare the database only; no goal or social notification feature is implied. Phase 2 background GPS is implemented but cannot be called device-verified until the native acceptance checklist passes.

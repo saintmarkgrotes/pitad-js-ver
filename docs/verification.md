@@ -1,5 +1,7 @@
 # Phase 1 verification
 
+Update November 17, 2026: the user confirmed registration, login, profile saving, and an iOS or Android development build worked against their Supabase project. This confirmation allows Phase 2 to proceed; it does not independently verify every device and security check below. Current recording implementation and checks are in [phase-2.md](phase-2.md). The remainder of this document preserves the original Phase 1 verification record.
+
 Recorded November 16, 2026 (Asia/Manila). Environment: Windows, Node 24.14.1, npm 11.11.0, Expo SDK 58.0.25. No live Supabase project credentials were provided.
 
 | Check | Result | Scope |
