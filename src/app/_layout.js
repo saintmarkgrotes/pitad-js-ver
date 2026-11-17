@@ -1,3 +1,4 @@
+import '../services/locationTask';
 import { ActivityIndicator, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -7,6 +8,7 @@ import { AuthProvider } from '../features/authentication/AuthProvider';
 import { queryClient } from '../services/queryClient';
 import { useAuthStore } from '../store/authStore';
 import { useTheme } from '../theme/useTheme';
+import { TrackingProvider } from '../features/tracking/TrackingProvider';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -18,7 +20,10 @@ function Routes() {
     <StatusBar style={dark ? 'light' : 'dark'} />
     <Stack id={undefined} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="index" />
-      <Stack.Protected guard={!!session}><Stack.Screen name="(tabs)" /></Stack.Protected>
+      <Stack.Protected guard={!!session}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="run/[id]" />
+      </Stack.Protected>
       <Stack.Protected guard={!session}><Stack.Screen name="(auth)" /></Stack.Protected>
       <Stack.Screen name="verify-email" />
       <Stack.Screen name="reset-password" />
@@ -28,5 +33,5 @@ function Routes() {
 }
 
 export default function RootLayout() {
-  return <SafeAreaProvider><QueryClientProvider client={queryClient}><AuthProvider><Routes /></AuthProvider></QueryClientProvider></SafeAreaProvider>;
+  return <SafeAreaProvider><QueryClientProvider client={queryClient}><AuthProvider><TrackingProvider><Routes /></TrackingProvider></AuthProvider></QueryClientProvider></SafeAreaProvider>;
 }
