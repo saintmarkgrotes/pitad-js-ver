@@ -26,7 +26,15 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-sqlite",
+      ["expo-location", {
+        "locationWhenInUsePermission": "Allow pitad to record your route and running distance while you run.",
+        "locationAlwaysAndWhenInUsePermission": "Allow pitad to keep recording your run when your screen is locked or you switch apps.",
+        "isIosBackgroundLocationEnabled": true,
+        "isAndroidBackgroundLocationEnabled": true,
+        "isAndroidForegroundServiceEnabled": true
+      }]
     ]
   }
 }
