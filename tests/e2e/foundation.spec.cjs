@@ -22,7 +22,7 @@ test('welcome, registration, login, password visibility, and recovery navigation
 });
 
 test('signed-out deep links cannot reach any protected tab', async ({ page }) => {
-  for (const route of ['/home', '/profile', '/record', '/progress', '/explore']) {
+  for (const route of ['/home', '/profile', '/record', '/progress', '/explore', '/run/private-run']) {
     await page.goto(route);
     await expect(page.getByRole('button', { name: 'Create an account' })).toBeVisible();
   }
