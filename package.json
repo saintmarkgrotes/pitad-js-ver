@@ -37,7 +37,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit -p jsconfig.json",
-    "test": "node --test tests/unit/*.test.mjs",
+    "test": "node --test tests/unit/*.test.mjs tests/tracking/*.test.mjs",
+    "test:tracking": "node --test tests/tracking/*.test.mjs",
     "test:database": "node --test tests/integration/*.test.mjs",
     "test:e2e": "playwright test",
     "export": "expo export --platform all"
