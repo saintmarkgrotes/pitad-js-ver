@@ -1,5 +1,7 @@
 import { requireSupabase } from '../../database/supabase/client';
 import { codeSchema, emailSchema, loginSchema, passwordSchema, registerSchema } from '../../validation/auth';
+import { runRepository } from '../../database/local/runRepository';
+import { useAuthStore } from '../../store/authStore';
 
 async function unwrap(request) {
   const { data, error } = await request;
@@ -19,6 +21,10 @@ export const authApi = {
   requestReset(email) { return unwrap(requireSupabase().auth.resetPasswordForEmail(emailSchema.parse(email))); },
   updatePassword(password) { return unwrap(requireSupabase().auth.updateUser({ password: passwordSchema.parse(password) })); },
   async logout() {
+    const unfinished = await runRepository.active();
+    if (unfinished?.userId === useAuthStore.getState().session?.user.id && unfinished) {
+      throw Object.assign(new Error('Finish your saved run before signing out.'), { code: 'run_in_progress' });
+    }
     const { error } = await requireSupabase().auth.signOut({ scope: 'local' });
     if (error) throw error;
   },

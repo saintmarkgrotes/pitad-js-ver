@@ -1,5 +1,6 @@
 export function authErrorMessage(error) {
   const messages = {
+    run_in_progress: 'Finish the unfinished run in Record before signing out of this device.',
     invalid_credentials: 'That email and password do not match. Please try again.',
     email_not_confirmed: 'Confirm your email before signing in. Use the verification option below.',
     user_already_exists: 'An account may already use this email. Try signing in or resetting your password.',
